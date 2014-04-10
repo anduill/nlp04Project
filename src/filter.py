@@ -12,20 +12,17 @@ import numpy as np
 import sys
 
 def traverse_dir(root):
-    count=0
     if not isfile(root):
         for f in listdir(root):
             traverse_dir(root+"/"+f)
-            ++count
-            if count == 2:
-                break
     else:
         h5 = hdf5_getters.open_h5_file_read(root)
         tags = hdf5_getters.get_artist_mbtags(h5)
-        print tags.keys()
-        for genre in genreDict.keys():
-            if genre in tags:
-                genreDict[genre].append(root)
+	if tags.size != 0:
+            print [len(genreDict[x]) for x in genreDict.keys()]
+            for genre in genreDict.keys():
+                if genre in tags:
+                    genreDict[genre].append(root)
         h5.close()
         
 dataPath = sys.argv[1]
@@ -35,3 +32,4 @@ genreKeys = [sys.argv[i+4] for i in range(len(sys.argv)-4)]
 genreDict = {x:[] for x in genreKeys}
 
 traverse_dir(dataPath)
+print [len(genreDict[x]) for x in genreDict.keys()]
