@@ -15,13 +15,14 @@ import json
 def traverse_dir(root):
     if not isfile(root):
         for f in listdir(root):
-            print root + "/" + f
+            # print root + "/" + f
             traverse_dir(root + "/" + f)
     else:
         h5 = hdf5_getters.open_h5_file_read(root)
         numOfSongs = hdf5_getters.get_num_songs(h5)
         for index in range(numOfSongs):
             tags = hdf5_getters.get_artist_mbtags(h5,index)
+            # print tags
             artist = hdf5_getters.get_artist_name(h5,index)
             songName = hdf5_getters.get_title(h5,index)
             segmentTimbre = hdf5_getters.get_segments_timbre(h5,index)
@@ -43,7 +44,7 @@ def write():
         if len(data) < minGenreSize:
             continue
         with open(outputFileName+"/"+genre+".json", 'w') as outfile:
-            json.dump(data, outfile)
+            json.dump(data, outfile, sort_keys = True, indent = 4)
             
 if len(sys.argv) < 6:
     print "ERROR - Parameters Missing"
@@ -59,3 +60,12 @@ genreDict = {x:[] for x in genreKeys}
 
 traverse_dir(dataPath)
 write()
+
+def main(sys_args):
+    dataPath = sys_args[1]
+    output_dir = sys_args[2]
+    minGenreSize = int(sys_args[3])
+    maxGenreSize = int(sys_args[4])
+
+if __name__ == "__main__":
+    main(sys.argv)
