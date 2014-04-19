@@ -7,7 +7,9 @@ import os
 from os import listdir
 from os.path import isfile
 import hdf5_getters
+import string
 import sys
+import json
 
 
 def notValidSong(tags, artist, songName, segmentTimbre, segmentPitches):
@@ -18,10 +20,10 @@ def genreInTags(genre,tags):
         if genre in tag:
             return True
 
-def traverseAndWrite(root, genreFileDescriptors):
+def traverseAndWrite(root, genreDirs, genreKeys):
     if not isfile(root):
         for f in listdir(root):
-            traverseAndWrite(root + "/" + f,genreFileDescriptors)
+            traverseAndWrite(root + "/" + f,genreDirs, genreKeys)
     else:
         h5 = hdf5_getters.open_h5_file_read(root)
         numOfSongs = hdf5_getters.get_num_songs(h5)
@@ -35,7 +37,7 @@ def traverseAndWrite(root, genreFileDescriptors):
             if notValidSong(tags, artist, songName, segmentTimbre, segmentPitches):
                 h5.close()
                 continue
-            for genre in genreFileDescriptors.keys():
+            for genre in genreKeys:
                 if genreInTags(genre,tags):
                     song = {}
                     song['genre'] = genre
@@ -43,15 +45,18 @@ def traverseAndWrite(root, genreFileDescriptors):
                     song['song_title'] = songName
                     song['segments_pitches'] = segmentPitches.tolist()
                     song['segments_timbre'] = segmentTimbre.tolist()
-                    line = str(song)
-                    writeToDescriptor(genre,genreFileDescriptors,line)
+
+                    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+                    songName = ''.join(c for c in songName if c in valid_chars)
+                    artist = ''.join(c for c in artist if c in valid_chars)
+                    fd = open(genreDirs[genre]+"/"+artist+"--"+songName+".json",'a')
+                    writeToDescriptor(fd,song)
+                    fd.close()
         h5.close()
 
 
-def writeToDescriptor(genreKey, genreDict, line):
-    fd = genreDict[genreKey]
-    fd.write(line)
-    fd.write("\n")
+def writeToDescriptor(fd, obj):
+    json.dump(obj,fd)
 
 def main(sys_args):
     if len(sys_args) < 6:
@@ -64,13 +69,17 @@ def main(sys_args):
     minGenreSize = int(sys_args[3])
     maxGenreSize = int(sys_args[4])
     genreKeys = [sys.argv[i + 5] for i in range(len(sys.argv) - 5)]
+    genreDirs = {genre:output_dir+"/"+genre for genre in genreKeys}
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    genreFileDescriptors = {gk:open(output_dir+"/"+gk+".json",'w') for gk in genreKeys}
+    for genreDir in genreDirs.values():
+        if not os.path.exists(genreDir):
+            os.makedirs(genreDir)
+    # genreFileDescriptors = {gk:open(genreDir+"/"+gk+".json",'w') for gk, genreDir in zip(genreKeys,genreDirs.keys())}
 
-    traverseAndWrite(dataPath, genreFileDescriptors)
-    for key in genreFileDescriptors.keys():
-        genreFileDescriptors[key].close()
+    traverseAndWrite(dataPath, genreDirs, genreKeys)
+    # for key in genreFileDescriptors.keys():
+    #     genreFileDescriptors[key].close()
 
 if __name__ == "__main__":
     main(sys.argv)
