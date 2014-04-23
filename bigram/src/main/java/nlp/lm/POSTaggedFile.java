@@ -12,7 +12,7 @@ import java.util.*;
  *         into simple untagged Lists of sentences which are Lists of String tokens.
  */
 
-public class POSTaggedFile {
+public class POSTaggedFile implements SentenceTokenIzable {
 
     /**
      * The name of the LDC POS file
@@ -26,6 +26,9 @@ public class POSTaggedFile {
     /**
      * Create an object for a given LDC POS tagged file
      */
+    public POSTaggedFile(){
+
+    }
     public POSTaggedFile(File file) {
         this.file = file;
         try {
@@ -148,7 +151,7 @@ public class POSTaggedFile {
      * Take a list of LDC tagged input files or directories and convert them to a List of sentences
      * each represented as a List of token Strings
      */
-    public static List<List<String>> convertToTokenLists(List<File> files) {
+    public List<List<String>> convertToTokenLists(List<File> files) {
         List<List<String>> sentences = new ArrayList<List<String>>();
         for (File file : files) {
 
@@ -172,7 +175,8 @@ public class POSTaggedFile {
         File[] files = new File[args.length];
         for (int i = 0; i < files.length; i++)
             files[i] = new File(args[i]);
-        List<List<String>> sentences = convertToTokenLists(Lists.newArrayList(files));
+        SentenceTokenIzable sentenceTokenizer = new POSTaggedFile();
+        List<List<String>> sentences = sentenceTokenizer.convertToTokenLists(Lists.newArrayList(files));
         System.out.println("# Sentences=" + sentences.size());
         System.out.println(sentences);
     }

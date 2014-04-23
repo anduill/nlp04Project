@@ -424,7 +424,7 @@ public class BigramModel {
         // Last arg is the TestFrac
         double testFraction = Double.valueOf(args[args.length -1]);
         // Get list of sentences from the LDC POS tagged input files
-        List<List<String>> sentences = 	POSTaggedFile.convertToTokenLists(Lists.newArrayList(files));
+        List<List<String>> sentences = 	new POSTaggedFile().convertToTokenLists(Lists.newArrayList(files));
         int numSentences = sentences.size();
         // Compute number of testForward sentences based on TestFrac
         int numTest = (int)Math.round(numSentences * testFraction);
@@ -449,7 +449,7 @@ public class BigramModel {
         model.test2Forward(testSentences);
     }
     public static void runForwardBigram(List<File> files, Double frac) {
-        List<List<String>> sentences = POSTaggedFile.convertToTokenLists(Lists.newArrayList(files));
+        List<List<String>> sentences = new POSTaggedFile().convertToTokenLists(Lists.newArrayList(files));
         int numSentences = sentences.size();
         int numTest = (int) Math.round(numSentences * frac);
         List<List<String>> testSentences = sentences.subList(numSentences - numTest, numSentences);
@@ -463,7 +463,7 @@ public class BigramModel {
         model.test2Forward(testSentences);
     }
     public static void runBackwardBigram(List<File> files, Double frac){
-        List<List<String>> sentences = POSTaggedFile.convertToTokenLists(Lists.newArrayList(files));
+        List<List<String>> sentences = new POSTaggedFile().convertToTokenLists(Lists.newArrayList(files));
         int numSentences = sentences.size();
         int numTest = (int) Math.round(numSentences * frac);
         List<List<String>> testSentences = sentences.subList(numSentences - numTest, numSentences);
@@ -477,7 +477,7 @@ public class BigramModel {
         model.test2Backward(testSentences);
     }
     public static void runBidirectionalBigram(List<File> files, Double frac){
-        List<List<String>> sentences = POSTaggedFile.convertToTokenLists(Lists.newArrayList(files));
+        List<List<String>> sentences = new POSTaggedFile().convertToTokenLists(Lists.newArrayList(files));
         int numSentences = sentences.size();
         int numTest = (int) Math.round(numSentences * frac);
         List<List<String>> testSentences = sentences.subList(numSentences - numTest, numSentences);
