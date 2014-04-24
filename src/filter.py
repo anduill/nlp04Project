@@ -19,6 +19,7 @@ def genreInTags(genre,tags):
     for tag in tags:
         if genre in tag:
             return True
+    return False
 
 def traverseAndWrite(root, genreDirs, genreKeys):
     if not isfile(root):
