@@ -73,12 +73,17 @@ public class LyricSentences implements Iterable<String> {
                         if(line == null){
                             done = true;
                             goToNextLine = false;
+                            reader.close();
                         }
                         else{
                             addToSentences(line,sentences);
                         }
                     }
                 }
+                for(String sentence: sentences){
+                    sentenceBuffer.add(sentence);
+                }
+                nextSentence = sentenceBuffer.poll();
             }
         }
 
@@ -86,6 +91,7 @@ public class LyricSentences implements Iterable<String> {
             String temp_line = line.replaceAll("\\[", "(");
             temp_line = temp_line.replaceAll("]",")");
             temp_line = temp_line.replaceAll("\\(.*\\)", " ");
+            temp_line = temp_line.replaceAll("'","");
             temp_line = temp_line.replaceAll("[^\\w\\. ]+"," ");//remove all punctuation that is not a period or a space (retain words)
             String removedRedundantPeriods = temp_line.replaceAll("[.]+",".");
             if(removedRedundantPeriods.contains(".")){
@@ -93,16 +99,21 @@ public class LyricSentences implements Iterable<String> {
                 for(String token : tokens){
                     token = token.trim();
                     if(token.length() > 0){
-                        sentences.add(token.toLowerCase());
+                        sentences.add(finalSentenceCleaning(token));
                     }
                 }
             }
+            else{
+                sentences.add(finalSentenceCleaning(removedRedundantPeriods));
+            }
         }
-
+        private String finalSentenceCleaning(String sentence){
+            return sentence.toLowerCase().replaceAll("[^\\w ]+","").replaceAll("[ ]+"," ").trim();
+        }
 
         @Override
         public void remove() {
-            //To change body of implemented methods use File | Settings | File Templates.
+            throw new UnsupportedOperationException("Remove on lyrics iterator is not supported!");
         }
     }
 }
