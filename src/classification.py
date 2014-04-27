@@ -77,6 +77,7 @@ def splitData (data_set, partition_index, cross_validation):
         for i in range(end_index, len(data_set[0])):
             training_set.append((key,data_set[key][i]))       
     return training_set, testing_set
+
 def normalize(training, testing):
     array = np.array(training)
     std = np.std(array, axis=0)
@@ -103,7 +104,7 @@ def aggregateResults(scores, genre_map):
         for classification in result.keys():
             for label in result[classification]:
                 aggregated_results[classification][label] +=1
-    # TO BE transposed
+    # Warning TO BE transposed before returning
     confusion_matrix = [ [aggregated_results[classification][label] for label in sorted(aggregated_results[classification].keys())] for classification in sorted(aggregated_results.keys())]
     array = np.array(confusion_matrix)
     total = np.sum(array, axis=1)
@@ -191,7 +192,7 @@ def main (argv):
         f.write('\n')
         f.write('Percentages')
         f.write(prettyPrintCSV(confusion_matrix_percentages, num_map, genre_map))
-        f.close() # you can omit in most cases as the destructor will call if
+        f.close()
 
 
 if __name__ == "__main__":
