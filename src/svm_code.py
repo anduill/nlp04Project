@@ -9,6 +9,7 @@ from sklearn import svm
 import json
 import numpy as np
 import sys
+import csv
 
 def traverseAndWrite(root, output_dir, data_size, data_set):
     if not isfile(root):
@@ -50,14 +51,72 @@ def traverseAndWrite(root, output_dir, data_size, data_set):
         array = np.array(pitches)
         mean = np.mean(array, axis=0).tolist()
         std = np.std(array, axis=0).tolist()
-        
         audioFeatures = audioFeatures + mean + std
+        
+        lyricFeatures = data.get('lang_vector',[])
+        
+        featureVector = audioFeatures + lyricFeatures
         if not data_set.get(genre,[]):
             data_set[genre]=[]
         if len(data_set[genre]) < data_size:
-            data_set[genre].append(audioFeatures)
+            data_set[genre].append(featureVector)
             
-        
+            
+def splitData (data_set, partition_index, cross_validation):
+    training_set = []
+    testing_set = []
+    start_index = partition_index*len(data_set[0])/cross_validation
+    end_index = (partition_index+1)*len(data_set[0])/cross_validation
+    for key in data_set.keys():
+        for i in range(start_index):
+            training_set.append((key,data_set[key][i]))
+        for i in range(start_index, end_index):
+            testing_set.append((key,data_set[key][i]))
+        for i in range(end_index, len(data_set[0])):
+            training_set.append((key,data_set[key][i]))       
+    return training_set, testing_set
+def normalize(training, testing):
+    array = np.array(training)
+    std = np.std(array, axis=0)
+    normal_array = array/std    
+    ntraining = normal_array.tolist()
+    
+    array = np.array(testing)
+    normal_array = array/std    
+    ntesting = normal_array.tolist()
+    return ntraining, ntesting
+    
+def prettyPrint(array, num_map, genre_map):
+    print ''.join(['{:<11}'.format('')]+['{:<11}'.format(genre) for genre in genre_map.keys()])
+    print '\n'.join(['{:<11}'.format(num_map[index]) + ''.join(['{:<11}'.format(round(item,2)) for item in row]) 
+      for index,row in enumerate(array)])
+
+def prettyPrintCSV(array, num_map, genre_map):
+    return ','.join(['{:<11}'.format('')]+['{:<11}'.format(genre) for genre in genre_map.keys()]) +'\n' + '\n'.join(['{:<11}'.format(num_map[index]) +","+ ','.join(['{:<11}'.format(round(item,2)) for item in row]) 
+      for index,row in enumerate(array)])
+    
+def aggregateResults(scores, genre_map):
+    aggregated_results = {genre_map[key]:{genre_map[key2]:0.0 for key2 in sorted(genre_map.keys())} for key in sorted(genre_map.keys())}
+    for result in scores:
+        for classification in result.keys():
+            for label in result[classification]:
+                aggregated_results[classification][label] +=1
+    # TO BE transposed
+    confusion_matrix = [ [aggregated_results[classification][label] for label in sorted(aggregated_results[classification].keys())] for classification in sorted(aggregated_results.keys())]
+    array = np.array(confusion_matrix)
+    total = np.sum(array, axis=1)
+    percentages = array/total
+    
+    percentages = np.transpose(percentages)
+    array = np.transpose(array)
+    return array.tolist(), percentages.tolist()
+    
+def evaluate_classifier(clf, Y, X, genre_map):
+    results = {genre_map[key]:[] for key in genre_map.keys()}
+    for i in range(len(Y)):
+        results[Y[i]].append(clf.predict(X[i])[0])
+    return results
+
 def main (argv):
     dataPath, output_dir, data_size, cross_validation = argv[1:] 
     data_size = int(data_size)
@@ -67,75 +126,59 @@ def main (argv):
     data_set = {}
     traverseAndWrite(dataPath, output_dir+"errorFiles", data_size, data_set)
     
-    #convert genres to numbers
+    # mapping functions
     genre_map={}
+    num_map={}
     mapping = 0
     for key in sorted(data_set.keys()):
         genre_map[key] = mapping
+        num_map[mapping] = key
         mapping +=1
+    # use genre mapping to int for dataset classes
     tmp = {}
     for key in sorted(data_set.keys()):
         tmp[genre_map[key]] = data_set[key]
     data_set = tmp
-    print genre_map
-    #cross validation
-    clf_scores = []
-    clf2_scores = []
-    for i in range(cross_validation):
-        start_index = i*len(data_set[0])/cross_validation
-        end_index = (i+1)*len(data_set[0])/cross_validation
-        # partition data for testing and training
-        training_set = []
-        testing_set = []
-        for key in data_set.keys():
-            for i in range(start_index):
-                training_set.append((key,data_set[key][i]))
-            for i in range(start_index, end_index):
-                testing_set.append((key,data_set[key][i]))
-            for i in range(end_index, len(data_set[0])):
-                training_set.append((key,data_set[key][i]))
-        #normalize training data        
-        Y = [x[0] for x in training_set]
-        X = [x[1] for x in training_set]
-        array = np.array(X)
-        std = np.std(array, axis=0)
-        normal_array = array/std    
-        X = normal_array.tolist()
-        
-        # create SVM
-        clf = svm.SVC()
-        clf.fit(X, Y) #feed training data_set
-        
-        clf2 = svm.LinearSVC()
-        clf2.fit(X, Y) #feed training data_set
-        
-        Y = [x[0] for x in testing_set]
-        X = [x[1] for x in testing_set]
-        array = np.array(X)
-        normal_array = array/std    
-        X = normal_array.tolist()
-        results = []
-        for i in range (len(X)):
-            if clf.predict(X[i]) == Y[i]:
-                results.append(Y[i])
-        clf_scores.append([results.count(i) for i in range(5)])
-        
-        results = []
-        for i in range (len(X)):
-            if clf2.predict(X[i]) == Y[i]:
-                results.append(Y[i])
-        clf2_scores.append([results.count(i) for i in range(5)])
-    array = np.array(clf_scores)
-    mean = np.mean(array, axis=0).tolist()
-    std = np.std(array, axis=0).tolist()
-    print mean
-    print std
     
-    array = np.array(clf2_scores)
-    mean = np.mean(array, axis=0).tolist()
-    std = np.std(array, axis=0).tolist()
-    print mean
-    print std
+    # classifiers
+    classifiers = []
+    classifiers.append(('poly_kernel_svm',svm.SVC(kernel='poly')))
+    classifiers.append(('rbf_kernel_svm',svm.SVC(kernel='rbf')))
+    classifiers.append(('linear_svm',svm.LinearSVC()))
+    #cross validation
+    clf_scores = {t:[] for t in classifiers}
+    for i in range(cross_validation):
+        # partition data for testing and training
+        training_set, testing_set = splitData(data_set, i, cross_validation)
+        
+        #normalize training data        
+        Y_train = [x[0] for x in training_set]
+        Y_test = [x[0] for x in testing_set]
+        
+        X_train = [x[1] for x in training_set]
+        X_test = [x[1] for x in testing_set]
+        
+        X_train, X_test = normalize(X_train, X_test)
+        
+        # create classifier
+        for t in classifiers:
+            clf = t[1]
+            clf.fit(X_train, Y_train) #feed training data_set
+            results = evaluate_classifier(clf, Y_test, X_test, genre_map)
+            clf_scores[t].append(results)
+    for t in clf_scores.keys():
+        clf = t[1]
+        output_file =output_dir + t[0] + '.csv'
+        scores = clf_scores[t]
+        f = open(output_file,'w')
+        confusion_matrix_values,confusion_matrix_percentages = aggregateResults(scores,genre_map)
+        f.write('Values')
+        f.write(prettyPrintCSV(confusion_matrix_values, num_map, genre_map))
+        f.write('\n')
+        f.write('Percentages')
+        f.write(prettyPrintCSV(confusion_matrix_percentages, num_map, genre_map))
+        f.close() # you can omit in most cases as the destructor will call if
+
 #print mean
 #print std
 
