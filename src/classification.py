@@ -5,7 +5,9 @@ Created on Apr 23, 2014
 '''
 from os import listdir, makedirs, remove
 from os.path import isfile, splitext, basename, isdir
-from sklearn import svm
+from sklearn import svm 
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
 import json
 import numpy as np
 import sys
@@ -54,7 +56,8 @@ def traverseAndWrite(root, output_dir, data_size, data_set):
         audioFeatures = audioFeatures + mean + std
         
         lyricFeatures = data.get('lang_vector',[])
-        
+        # TO DO LYRIC FEATURE CLASSIFICATION uncomment
+        # audioFeatures = []
         featureVector = audioFeatures + lyricFeatures
         if not data_set.get(genre,[]):
             data_set[genre]=[]
@@ -140,13 +143,19 @@ def main (argv):
         tmp[genre_map[key]] = data_set[key]
     data_set = tmp
     
-    # classifiers
-    classifiers = []
-    classifiers.append(('poly_kernel_svm',svm.SVC(kernel='poly')))
-    classifiers.append(('rbf_kernel_svm',svm.SVC(kernel='rbf')))
-    classifiers.append(('linear_svm',svm.LinearSVC()))
+    # name_classifier
+    # YOU ONLY NEED TO ADD/MODIFY THE CLASSIFIERS HERE
+    name_classifier = []
+    name_classifier.append(('poly_kernel_svm',svm.SVC(kernel='poly')))
+    name_classifier.append(('rbf_kernel_svm',svm.SVC(kernel='rbf')))
+    name_classifier.append(('linear_svm',svm.LinearSVC()))
+    name_classifier.append(('3_KNN',KNeighborsClassifier(n_neighbors=3)))
+    name_classifier.append(('1_KNN',KNeighborsClassifier(n_neighbors=1)))
+    name_classifier.append(('tree',DecisionTreeClassifier(random_state=0)))
+    ##################################################
+    
     #cross validation
-    clf_scores = {t:[] for t in classifiers}
+    name_classifier_scores = {t:[] for t in name_classifier}
     for i in range(cross_validation):
         # partition data for testing and training
         training_set, testing_set = splitData(data_set, i, cross_validation)
@@ -160,16 +169,16 @@ def main (argv):
         
         X_train, X_test = normalize(X_train, X_test)
         
-        # create classifier
-        for t in classifiers:
+        # use classifiers
+        for t in name_classifier:
             clf = t[1]
             clf.fit(X_train, Y_train) #feed training data_set
             results = evaluate_classifier(clf, Y_test, X_test, genre_map)
-            clf_scores[t].append(results)
-    for t in clf_scores.keys():
+            name_classifier_scores[t].append(results)
+    for t in name_classifier_scores.keys():
         clf = t[1]
         output_file =output_dir + t[0] + '.csv'
-        scores = clf_scores[t]
+        scores = name_classifier_scores[t]
         f = open(output_file,'w')
         confusion_matrix_values,confusion_matrix_percentages = aggregateResults(scores,genre_map)
         f.write('Values')
