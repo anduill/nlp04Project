@@ -4,33 +4,31 @@ Created on Apr 23, 2014
 @author: czar
 '''
 from os import listdir, makedirs, remove
-from os.path import isfile, splitext, basename
+from os.path import isfile, splitext, basename, isdir
 from sklearn import svm
 import json
 import numpy as np
 import sys
 
-def traverseAndWrite(root, outputFile, training_size, testing_size, training_set, testing_set, genre_map, genre_count):
+def traverseAndWrite(root, output_dir, data_size, data_set):
     if not isfile(root):
         parent = basename(root)
         for f in listdir(root):
-            if genre_count.get(parent,0) == training_size+testing_size:
+            if len(data_set.get(parent,[])) == data_size:
                 return
-            traverseAndWrite(root +"/"+ f,outputFile, training_size, testing_size, training_set, testing_set, genre_map, genre_count)
+            traverseAndWrite(root +"/"+ f,output_dir, data_size, data_set)
     else: 
         fileName, fileExtension = splitext(root)
-        #if fileExtension == '.txt' or testing_size == len(testing_set) or training_size:
-        #    return
         jsonFile = ''.join([fileName, ".json"])
         lyricFile = ''.join([fileName, ".txt"])
-        #if isfile(jsonFile) and isfile(lyricFile):
+        #if not isfile(jsonFile) or not isfile(lyricFile):
             
         try:
             json_data=open(jsonFile)
             data = json.load(json_data)
             json_data.close()
         except (ValueError, IOError):
-            f = open(outputFile,'a+')
+            f = open(output_dir,'a+')
             f.write(jsonFile)
             f.write('\n')
             f.close()
@@ -41,7 +39,7 @@ def traverseAndWrite(root, outputFile, training_size, testing_size, training_set
                 print 
             return
         
-        genre = data['genre']
+        genre = str(data['genre'])
         timbre = data['segments_timbre']
         array = np.array(timbre)
         mean = np.mean(array, axis=0).tolist()
@@ -54,58 +52,90 @@ def traverseAndWrite(root, outputFile, training_size, testing_size, training_set
         std = np.std(array, axis=0).tolist()
         
         audioFeatures = audioFeatures + mean + std
-        if genre_count[genre] < training_size:
-            training_set.append((genre_map[data['genre']], audioFeatures))
-            genre_count[genre] += 1
-        elif genre_count[genre] < testing_size + training_size:
-            testing_set.append((genre_map[data['genre']], audioFeatures))
-            genre_count[genre] += 1
+        if not data_set.get(genre,[]):
+            data_set[genre]=[]
+        if len(data_set[genre]) < data_size:
+            data_set[genre].append(audioFeatures)
             
         
 def main (argv):
-    dataPath, output_dir, training_size, testing_size = argv[1:] 
-    training_size = int(training_size)
-    testing_size = int(testing_size)
-    genres_count = {f:0 for f in listdir(dataPath)}
-    genres = [genre for genre in genres_count.keys()]
-    genre_map = {genres[i]:i for i in range(len(genres))}
-    makedirs(output_dir)
-    training_set = []
-    testing_set = []
-    traverseAndWrite(dataPath, output_dir+"errorFiles", training_size, testing_size, training_set, testing_set, genre_map, genres_count)
-    clf = svm.SVC()
-    X = [x[1] for x in training_set]
-    Y = [x[0] for x in training_set]
-    print clf.fit(X, Y)
-    X = [x[1] for x in testing_set]
-    Y = [x[0] for x in testing_set]
-    results = []
-    for i in range (len(X)):
-        if clf.predict(X[i]) == Y[i]:
-            results.append(Y[i]) 
-    print genre_map
-    print 0,results.count(0)
-    print 1,results.count(1)
-    print 2,results.count(2)
-    print 3,results.count(3)
-    print 4,results.count(4)
+    dataPath, output_dir, data_size, cross_validation = argv[1:] 
+    data_size = int(data_size)
+    cross_validation = int(cross_validation)
+    if not isdir(output_dir):
+        makedirs(output_dir)
+    data_set = {}
+    traverseAndWrite(dataPath, output_dir+"errorFiles", data_size, data_set)
     
-    clf = svm.LinearSVC()
-    X = [x[1] for x in training_set]
-    Y = [x[0] for x in training_set]
-    print clf.fit(X, Y)
-    X = [x[1] for x in testing_set]
-    Y = [x[0] for x in testing_set]
-    results = []
-    for i in range (len(X)):
-        if clf.predict(X[i]) == Y[i]:
-            results.append(Y[i]) 
+    #convert genres to numbers
+    genre_map={}
+    mapping = 0
+    for key in sorted(data_set.keys()):
+        genre_map[key] = mapping
+        mapping +=1
+    tmp = {}
+    for key in sorted(data_set.keys()):
+        tmp[genre_map[key]] = data_set[key]
+    data_set = tmp
     print genre_map
-    print 0,results.count(0)
-    print 1,results.count(1)
-    print 2,results.count(2)
-    print 3,results.count(3)
-    print 4,results.count(4)
+    #cross validation
+    clf_scores = []
+    clf2_scores = []
+    for i in range(cross_validation):
+        start_index = i*len(data_set[0])/cross_validation
+        end_index = (i+1)*len(data_set[0])/cross_validation
+        # partition data for testing and training
+        training_set = []
+        testing_set = []
+        for key in data_set.keys():
+            for i in range(start_index):
+                training_set.append((key,data_set[key][i]))
+            for i in range(start_index, end_index):
+                testing_set.append((key,data_set[key][i]))
+            for i in range(end_index, len(data_set[0])):
+                training_set.append((key,data_set[key][i]))
+        #normalize training data        
+        Y = [x[0] for x in training_set]
+        X = [x[1] for x in training_set]
+        array = np.array(X)
+        std = np.std(array, axis=0)
+        normal_array = array/std    
+        X = normal_array.tolist()
+        
+        # create SVM
+        clf = svm.SVC()
+        clf.fit(X, Y) #feed training data_set
+        
+        clf2 = svm.LinearSVC()
+        clf2.fit(X, Y) #feed training data_set
+        
+        Y = [x[0] for x in testing_set]
+        X = [x[1] for x in testing_set]
+        array = np.array(X)
+        normal_array = array/std    
+        X = normal_array.tolist()
+        results = []
+        for i in range (len(X)):
+            if clf.predict(X[i]) == Y[i]:
+                results.append(Y[i])
+        clf_scores.append([results.count(i) for i in range(5)])
+        
+        results = []
+        for i in range (len(X)):
+            if clf2.predict(X[i]) == Y[i]:
+                results.append(Y[i])
+        clf2_scores.append([results.count(i) for i in range(5)])
+    array = np.array(clf_scores)
+    mean = np.mean(array, axis=0).tolist()
+    std = np.std(array, axis=0).tolist()
+    print mean
+    print std
+    
+    array = np.array(clf2_scores)
+    mean = np.mean(array, axis=0).tolist()
+    std = np.std(array, axis=0).tolist()
+    print mean
+    print std
 #print mean
 #print std
 
