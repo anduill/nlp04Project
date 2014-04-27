@@ -11,7 +11,6 @@ from sklearn.tree import DecisionTreeClassifier
 import json
 import numpy as np
 import sys
-import csv
 
 def traverseAndWrite(root, output_dir, data_size, data_set):
     if not isfile(root):
@@ -121,6 +120,10 @@ def evaluate_classifier(clf, Y, X, genre_map):
     return results
 
 def main (argv):
+    if not len(argv) == 5:
+        print "Insufficient parameters"
+        print "<dataPath> <output_dir> <data_size> <cross_validation>"
+        sys.exit()
     dataPath, output_dir, data_size, cross_validation = argv[1:] 
     data_size = int(data_size)
     cross_validation = int(cross_validation)
