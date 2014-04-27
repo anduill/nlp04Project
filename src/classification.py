@@ -178,6 +178,8 @@ def main (argv):
             clf.fit(X_train, Y_train) #feed training data_set
             results = evaluate_classifier(clf, Y_test, X_test, genre_map)
             name_classifier_scores[t].append(results)
+            
+    # Print the output information
     for t in name_classifier_scores.keys():
         clf = t[1]
         output_file =output_dir + t[0] + '.csv'
@@ -191,8 +193,6 @@ def main (argv):
         f.write(prettyPrintCSV(confusion_matrix_percentages, num_map, genre_map))
         f.close() # you can omit in most cases as the destructor will call if
 
-#print mean
-#print std
 
 if __name__ == "__main__":
     main(sys.argv)
