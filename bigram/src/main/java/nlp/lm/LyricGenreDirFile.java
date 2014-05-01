@@ -7,7 +7,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LyricFile implements SentenceTokenIzable {
+public class LyricGenreDirFile implements SentenceTokenIzable {
     @Override
     public List<List<String>> convertToTokenLists(List<File> files) {
         List<List<String>> result = Lists.newArrayList();

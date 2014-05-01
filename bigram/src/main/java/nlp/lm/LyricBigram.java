@@ -72,44 +72,39 @@ public class LyricBigram {
                               Map<String, DoubleValue> bigramMap,
                               String beginTag,
                               String endTag){
-        // First count an initial start sentence token
         String prevToken = beginTag;
         DoubleValue unigramValue = unigramMap.get(beginTag);
         unigramValue.increment();
         tokenCount++;
-        // For each token in sentence, accumulate a unigram and bigram count
+
         for (String token : sequence) {
             unigramValue = unigramMap.get(token);
-            // If this is the first time token is seen then count it
-            // as an unkown token (<UNK>) to handle out-of-vocabulary
-            // items in testing
+
             if (unigramValue == null) {
-                // Store token in unigram map with 0 count to indicate that
-                // token has been seen but not counted
+
                 unigramMap.put(token, new DoubleValue());
                 token = unknownToken;
                 unigramValue = unigramMap.get(token);
             }
-            unigramValue.increment();    // Count unigram
-            tokenCount++;               // Count token
-            // Make bigram string
+            unigramValue.increment();
+            tokenCount++;
+
             String bigram = bigram(prevToken, token);
             DoubleValue bigramValue = bigramMap.get(bigram);
             if (bigramValue == null) {
-                // If previously unseen bigram, then
-                // initialize it with a value
+
                 bigramValue = new DoubleValue();
                 bigramMap.put(bigram, bigramValue);
             }
-            // Count bigram
+
             bigramValue.increment();
             prevToken = token;
         }
-        // Account for end of sentence unigram
+
         unigramValue = unigramMap.get(endTag);
         unigramValue.increment();
         tokenCount++;
-        // Account for end of sentence bigram
+
         String bigram = bigram(prevToken, endTag);
         DoubleValue bigramValue = bigramMap.get(bigram);
         if (bigramValue == null) {
@@ -121,39 +116,32 @@ public class LyricBigram {
 
     /** Compute unigram and bigram probabilities from unigram and bigram counts */
     public void calculateProbs(Map<String, DoubleValue> unigramMap, Map<String, DoubleValue> bigramMap) {
-        // Set bigram values to conditional probability of second token given first
+
         for (Map.Entry<String, DoubleValue> entry : bigramMap.entrySet()) {
-            // An entry in the HashMap maps a token to a DoubleValue
             String bigram = entry.getKey();
-            // The value for the token is in the value of the DoubleValue
+
             DoubleValue value = entry.getValue();
             double bigramCount = value.getValue();
-            String token1 = bigramToken1(bigram); // Get first token of bigram
-            // Prob is ratio of bigram count to token1 unigram count
+            String token1 = bigramToken1(bigram);
+
             double condProb = bigramCount / unigramMap.get(token1).getValue();
-            // Set map value to conditional probability
             value.setValue(condProb);
         }
-        // Store unigrams with zero count to remove from map
         List<String> zeroTokens = new ArrayList<String>();
-        // Set unigram values to unigram probability
         for (Map.Entry<String, DoubleValue> entry : unigramMap.entrySet()) {
-            // An entry in the HashMap maps a token to a DoubleValue
             String token = entry.getKey();
-            // Uniggram count is the current map value
             DoubleValue value = entry.getValue();
             double count = value.getValue();
-            if (count == 0)
-                // If count is zero (due to first encounter as <UNK>)
-                // then remove save it to remove from map
+            if (count == 0){
                 zeroTokens.add(token);
-            else
-                // Set map value to prob of unigram
+            }
+            else{
                 value.setValue(count / tokenCount);
+            }
         }
-        // Remove zero count unigrams from map
-        for (String token : zeroTokens)
+        for (String token : zeroTokens){
             unigramMap.remove(token);
+        }
     }
 
     /** Return bigram string as two tokens separated by a newline */
@@ -173,62 +161,30 @@ public class LyricBigram {
         return bigram.substring(newlinePos + 1, bigram.length());
     }
 
-    /** Print model as lists of unigram and bigram probabilities */
-    public void print() {
-        System.out.println("Unigram probs:");
-        for (Map.Entry<String, DoubleValue> entry : forwardUnigramMap.entrySet()) {
-            // An entry in the HashMap maps a token to a DoubleValue
-            String token = entry.getKey();
-            // The value for the token is in the value of the DoubleValue
-            DoubleValue value = entry.getValue();
-            System.out.println(token + " : " + value.getValue());
-        }
-        System.out.println("\nBigram probs:");
-        for (Map.Entry<String, DoubleValue> entry : forwardBigramMap.entrySet()) {
-            // An entry in the HashMap maps a token to a DoubleValue
-            String bigram = entry.getKey();
-            // The value for the token is in the value of the DoubleValue
-            DoubleValue value = entry.getValue();
-            System.out.println(bigramToken2(bigram) + " given " + bigramToken1(bigram) +
-                    " : " + value.getValue());
-        }
-    }
-
     public double sequenceLogProb(List<String> sequence,
                                   Map<String, DoubleValue> unigramMap,
                                   Map<String, DoubleValue> bigramMap,
                                   String beginTag,
                                   String endTag){
-        // Set start-sentence as initial token
         String prevToken = beginTag;
-        // Maintain total sentence prob as sum of individual token
-        // log probs (since adding logs is same as multiplying probs)
         double sentenceLogProb = 0;
-        // Check prediction of each token in sentence
+
         for (String token : sequence) {
-            // Retrieve unigram prob
             DoubleValue unigramVal = unigramMap.get(token);
             if (unigramVal == null) {
-                // If token not in unigram model, treat as <UNK> token
                 token = unknownToken;
                 unigramVal = unigramMap.get(token);
             }
-            // Get bigram prob
             String bigram = bigram(prevToken, token);
             DoubleValue bigramVal = bigramMap.get(bigram);
-            // Compute log prob of token using interpolated prob of unigram and bigram
             double logProb = Math.log(interpolatedProb(unigramVal, bigramVal));
-            // Add token log prob to sentence log prob
             sentenceLogProb += logProb;
-            // update previous token and move to next token
             prevToken = token;
         }
-        // Check prediction of end of sentence token
         DoubleValue unigramVal = unigramMap.get(endTag);
         String bigram = bigram(prevToken, endTag);
         DoubleValue bigramVal = bigramMap.get(bigram);
         double logProb = Math.log(interpolatedProb(unigramVal, bigramVal));
-        // Update sentence log prob based on prediction of </S>
         sentenceLogProb += logProb;
         return sentenceLogProb;
     }
@@ -278,10 +234,9 @@ public class LyricBigram {
     /** Interpolate bigram prob using bigram and unigram model predictions */
     public double interpolatedProb(DoubleValue unigramVal, DoubleValue bigramVal) {
         double bigramProb = 0;
-        // In bigram unknown then its prob is zero
-        if (bigramVal != null)
+        if (bigramVal != null){
             bigramProb = bigramVal.getValue();
-        // Linearly combine weighted unigram and bigram probs
+        }
         return unigramLambda1 * unigramVal.getValue() + lambda2 * bigramProb;
     }
     public double biInterpolatedProb(DoubleValue unigramVal, DoubleValue forwardBigramVal, DoubleValue backwardBigramVal) {

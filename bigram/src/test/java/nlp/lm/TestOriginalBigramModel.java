@@ -14,11 +14,19 @@ public class TestOriginalBigramModel {
     public static String wsj_dir = "/Users/djchuy/development/nlp_old/data/pos/wsj";
     public static String brown_dir = "/Users/djchuy/development/nlp_old/data/pos/brown";
     public static String lyrics_dir = "/Users/djchuy/development/lyrics";
+    public String lyricsBase = "/Users/djchuy/development/repositories/nlp04Project/data";
+
+    public String electronic = lyricsBase+"/"+"electronic2";
+    public String pop = lyricsBase+"/"+"pop";
+    public String country = lyricsBase+"/"+"country";
+    public String punk = lyricsBase+"/"+"punk";
+    public String rock = lyricsBase+"/"+"rock";
+
 
     @Test
     public void testLyricsExtraction(){
         List<File> lyrics = Lists.newArrayList(new File(lyrics_dir));
-        LyricFile lyricsFile = new LyricFile();
+        LyricGenreDirFile lyricsFile = new LyricGenreDirFile();
         List<List<String>> lyricSentences = lyricsFile.convertToTokenLists(lyrics);
         for(List<String> sentence : lyricSentences){
             System.out.println(sentence);
@@ -71,7 +79,11 @@ public class TestOriginalBigramModel {
         String[] tokens = testString2.split("[.]");
         String token1 = tokens[0];
         String token2 = tokens[1].trim();
-
+    }
+    @Test
+    public void testStringOps(){
+        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o","out"};
+        GenreModels.main(args);
     }
 
 }
