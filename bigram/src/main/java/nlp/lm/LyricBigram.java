@@ -9,24 +9,24 @@ import java.util.Map;
 
 public class LyricBigram {
     /** Unigram model that maps a token to its unigram probability */
-    public Map<String, DoubleValue> forwardUnigramMap = null;
-    public Map<String, DoubleValue> backwardUnigramMap = null;
+    private Map<String, DoubleValue> forwardUnigramMap = null;
+    private Map<String, DoubleValue> backwardUnigramMap = null;
     /**  Bigram model that maps a bigram as a string "A\nB" to the
      *   P(B | A) */
-    public Map<String, DoubleValue> forwardBigramMap = null;
-    public Map<String, DoubleValue> backwardBigramMap = null;
+    private Map<String, DoubleValue> forwardBigramMap = null;
+    private Map<String, DoubleValue> backwardBigramMap = null;
     /** Total count of tokens in training data */
-    public double tokenCount = 0;
+    private double tokenCount = 0;
 
     /** Interpolation weight for unigram model */
-    public double unigramLambda1 = 0.1;
-    public double bigramLambda = 0.45;
+    private double unigramLambda1 = 0.1;
+    private double bigramLambda = 0.45;
 
     /** Interpolation weight for bigram model */
-    public double lambda2 = 0.9;
-    public String beginSentenceTag = "<S>";
-    public String endSentenceTag = "</S>";
-    public String unknownToken = "<UNK>";
+    private double lambda2 = 0.9;
+    private String beginSentenceTag = "<S>";
+    private String endSentenceTag = "</S>";
+    private String unknownToken = "<UNK>";
 
     /** Initialize model with empty hashmaps with initial
      *  unigram entries for setence start (<S>), sentence end (</S>)
@@ -53,7 +53,7 @@ public class LyricBigram {
         return result;
     }
 
-    public void trainBoth(List<List<String>> sentences){
+    public void trainBidirectional(List<List<String>> sentences){
         for(List<String> sentence : sentences){
             trainSequence(sentence,forwardUnigramMap,forwardBigramMap,beginSentenceTag,endSentenceTag);
         }

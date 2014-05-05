@@ -5,17 +5,22 @@ import com.google.common.collect.Lists;
 import com.sampullara.cli.Args;
 import com.sampullara.cli.Argument;
 import com.sun.tools.javac.util.Pair;
+import net.minidev.json.JSONObject;
+import net.minidev.json.JSONValue;
 
-import java.io.File;
+import java.io.*;
 import java.util.List;
+import java.util.Random;
 
 public class GenreModels {
-    private LyricBigram electronic;
-    private LyricBigram pop;
-    private LyricBigram punk;
-    private LyricBigram rock;
+    private static LyricBigram electronic;
+    private static LyricBigram pop;
+    private static LyricBigram punk;
+    private static LyricBigram rock;
 
-    public static void main(String[] args){
+    private static LyricGenreDirFile lyricTransformer = new LyricGenreDirFile();
+
+    public static void main(String[] args) throws IOException {
         LyricOptionParser parser = new LyricOptionParser();
         Args.usage(parser);
         Args.parse(parser,args);
@@ -31,7 +36,117 @@ public class GenreModels {
         Pair<List<File>,List<File>> rockPairFiles = extractTextJson(_rock);
 
         File _output = new File(parser.output);
-        //_output.mkdir();
+        _output.mkdir();
+        Long seed = parser.seed;
+        Integer modelSampleSize = parser.size;
+
+        List<File> trainingFiles = Lists.newArrayList();
+
+        List<File> elecTestingFiles = Lists.newArrayList();
+        List<File> elecJsonTestingFiles = Lists.newArrayList();
+        populateTrainingTesting(electPairFiles,trainingFiles,elecTestingFiles,elecJsonTestingFiles,seed,modelSampleSize);
+        electronic = trainBigram(trainingFiles);
+        refreshLists(trainingFiles);
+
+        List<File> popTestingFiles = Lists.newArrayList();
+        List<File> popJsonTestingFiles = Lists.newArrayList();
+        populateTrainingTesting(popPairFiles,trainingFiles,popTestingFiles,popJsonTestingFiles,seed,modelSampleSize);
+        pop = trainBigram(trainingFiles);
+        refreshLists(trainingFiles);
+
+        List<File> punkTestingFiles = Lists.newArrayList();
+        List<File> punkJsonTestingFiles = Lists.newArrayList();
+        populateTrainingTesting(punkPairFiles,trainingFiles,punkTestingFiles,punkJsonTestingFiles,seed,modelSampleSize);
+        punk = trainBigram(trainingFiles);
+        refreshLists(trainingFiles);
+
+        List<File> rockTestingFiles = Lists.newArrayList();
+        List<File> rockJsonTestingFiles = Lists.newArrayList();
+        populateTrainingTesting(rockPairFiles,trainingFiles,rockTestingFiles,rockJsonTestingFiles,seed,modelSampleSize);
+        rock = trainBigram(trainingFiles);
+        refreshLists(trainingFiles);
+
+        List<File> allText = elecTestingFiles;
+        allText.addAll(popTestingFiles); allText.addAll(punkTestingFiles); allText.addAll(rockTestingFiles);
+        List<File> allJson = elecJsonTestingFiles;
+        allJson.addAll(popJsonTestingFiles); allJson.addAll(punkJsonTestingFiles); allJson.addAll(rockJsonTestingFiles);
+        appendFeatures(electronic, pop, punk, rock, allText, allJson,_output);
+    }
+
+    private static void appendFeatures(LyricBigram electronic,
+                                       LyricBigram pop,
+                                       LyricBigram punk,
+                                       LyricBigram rock,
+                                       List<File> allText,
+                                       List<File> allJson,
+                                       File ouputDir) throws IOException {
+        for(int i = 0; i < allText.size(); i++){
+            File textFile = allText.get(i);
+            File jsonFile = allJson.get(i);
+
+            List<List<String>> songLyricSentences = lyricTransformer.convertToTokenLists(Lists.newArrayList(textFile));
+            Double[] lang_vector = new Double[4];
+            lang_vector[0] = electronic.bidirectionalComplex(songLyricSentences);
+            lang_vector[1] = pop.bidirectionalComplex(songLyricSentences);
+            lang_vector[2] = punk.bidirectionalComplex(songLyricSentences);
+            lang_vector[3] = rock.bidirectionalComplex(songLyricSentences);
+
+            JSONObject json = (JSONObject)JSONValue.parse(new FileReader(jsonFile));
+            json.put("lang_vector",lang_vector);
+            PrintWriter jsonWriter = new PrintWriter(ouputDir.getAbsolutePath()+"/"+jsonFile.getName());
+            jsonWriter.println(json.toJSONString());
+            jsonWriter.close();
+        }
+    }
+
+    private static void refreshLists(List<File>...lists) {
+        for(List<File> list : lists){
+            list.clear();
+        }
+    }
+
+    private static LyricBigram trainBigram(List<File> trainingFiles) {
+        List<List<String>> trainingSentences = lyricTransformer.convertToTokenLists(trainingFiles);
+        LyricBigram bigram = new LyricBigram();
+        bigram.trainBidirectional(trainingSentences);
+        return bigram;
+    }
+
+    private static void populateTrainingTesting(Pair<List<File>, List<File>> textAndJson,
+                                                List<File> trainingFiles,
+                                                List<File> testingFiles,
+                                                List<File> jsonTestingFiles,
+                                                Long seed,
+                                                Integer sampleSize) {
+        List<File> textFiles = textAndJson.fst;
+        List<File> jsonFiles = textAndJson.snd;
+        List<Integer> trainingIndices = Lists.newArrayList();
+        List<Integer> testingIndices = Lists.newArrayList();
+        Integer totalNumberOfFiles = textFiles.size();
+        for(int i = 0; i < totalNumberOfFiles; i++){
+            testingIndices.add(i);
+        }
+        Boolean done = false;
+        Random random = new Random(seed);
+        while(!done){
+            if(trainingIndices.size() >= sampleSize){
+                done = true;
+            }
+            else{
+                Integer nextIndex = Math.round(random.nextFloat()*testingIndices.size());
+                if(nextIndex < testingIndices.size()){
+                    Integer lookedUpIndex = testingIndices.get(nextIndex);
+                    trainingIndices.add(lookedUpIndex);
+                }
+            }
+        }
+        for(Integer i : trainingIndices){
+            trainingFiles.add(textFiles.get(i));
+        }
+        for(Integer i : testingIndices){
+            testingFiles.add(textFiles.get(i));
+            jsonTestingFiles.add(jsonFiles.get(i));
+        }
     }
 
     private static Pair<List<File>, List<File>> extractTextJson(File directory) {
@@ -67,5 +182,9 @@ public class GenreModels {
         private String rock;
         @Argument(value = "outputDir", alias = "o", required = true, description = "Output directory directory")
         private String output;
+        @Argument(value = "seed", alias = "s", required = true, description = "Seed value for sampling")
+        private Long seed;
+        @Argument(value = "size", alias = "sz", required = true, description = "Number of lyric samples for building  genre bigrams")
+        private Integer size;
     }
 }

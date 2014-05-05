@@ -5,7 +5,9 @@ import com.google.common.collect.Lists;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
 import static nlp.lm.BigramModel.*;
 
@@ -21,6 +23,7 @@ public class TestOriginalBigramModel {
     public String country = lyricsBase+"/"+"country";
     public String punk = lyricsBase+"/"+"punk";
     public String rock = lyricsBase+"/"+"rock";
+    public String out = lyricsBase+"/"+"test_out";
 
 
     @Test
@@ -81,9 +84,19 @@ public class TestOriginalBigramModel {
         String token2 = tokens[1].trim();
     }
     @Test
-    public void testStringOps(){
-        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o","out"};
+    public void testStringOps() throws IOException {
+        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out,"-s","8","-sz","150"};
         GenreModels.main(args);
+    }
+    @Test
+    public void testRandomNumbers(){
+        Random random = new Random(8l);
+        Double value = random.nextDouble();
+        for(int i = 0; i < 10; i++){
+//            random.setSeed(i);
+            System.out.println(value);
+            value = random.nextDouble();
+        }
     }
 
 }
