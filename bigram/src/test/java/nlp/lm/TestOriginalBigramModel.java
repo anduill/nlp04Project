@@ -85,7 +85,8 @@ public class TestOriginalBigramModel {
     }
     @Test
     public void testStringOps() throws IOException {
-        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out,"-s","8","-sz","150"};
+//        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out,"-s","8","-sz","150"};
+        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out,"-s","8","-sz","200"};
         GenreModels.main(args);
     }
     @Test

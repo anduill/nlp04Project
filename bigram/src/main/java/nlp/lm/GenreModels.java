@@ -9,6 +9,7 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -80,6 +81,8 @@ public class GenreModels {
                                        List<File> allText,
                                        List<File> allJson,
                                        File ouputDir) throws IOException {
+        Integer numRockSongs = 0;
+        Integer numCorrectRockSongs = 0;
         for(int i = 0; i < allText.size(); i++){
             File textFile = allText.get(i);
             File jsonFile = allJson.get(i);
@@ -93,10 +96,18 @@ public class GenreModels {
 
             JSONObject json = (JSONObject)JSONValue.parse(new FileReader(jsonFile));
             json.put("lang_vector",lang_vector);
+            if(jsonFile.getAbsolutePath().contains("rock")){
+                numRockSongs++;
+                if(lang_vector[3] <= lang_vector[0] && lang_vector[3] <= lang_vector[1] && lang_vector[3] <= lang_vector[2]){
+                    numCorrectRockSongs++;
+                }
+            }
             PrintWriter jsonWriter = new PrintWriter(ouputDir.getAbsolutePath()+"/"+jsonFile.getName());
             jsonWriter.println(json.toJSONString());
             jsonWriter.close();
         }
+        System.out.println("Number of Rock Songs: "+ numRockSongs);
+        System.out.println("Number of Correctly Labeled Rock Songs: "+numCorrectRockSongs);
     }
 
     private static void refreshLists(List<File>...lists) {
@@ -137,6 +148,7 @@ public class GenreModels {
                 if(nextIndex < testingIndices.size()){
                     Integer lookedUpIndex = testingIndices.get(nextIndex);
                     trainingIndices.add(lookedUpIndex);
+                    testingIndices.remove(nextIndex);
                 }
             }
         }
