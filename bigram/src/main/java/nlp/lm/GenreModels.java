@@ -98,7 +98,7 @@ public class GenreModels {
             json.put("lang_vector",lang_vector);
             if(jsonFile.getAbsolutePath().contains("rock")){
                 numRockSongs++;
-                if(lang_vector[3] <= lang_vector[0] && lang_vector[3] <= lang_vector[1] && lang_vector[3] <= lang_vector[2]){
+                if(lang_vector[3] < lang_vector[0]){
                     numCorrectRockSongs++;
                 }
             }
@@ -107,7 +107,7 @@ public class GenreModels {
             jsonWriter.close();
         }
         System.out.println("Number of Rock Songs: "+ numRockSongs);
-        System.out.println("Number of Correctly Labeled Rock Songs: "+numCorrectRockSongs);
+        System.out.println("Number of Correctly Labeled Rock Songs vs Electronic: "+numCorrectRockSongs);
     }
 
     private static void refreshLists(List<File>...lists) {
