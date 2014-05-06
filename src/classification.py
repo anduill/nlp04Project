@@ -12,19 +12,20 @@ import json
 import numpy as np
 import sys
 
-def traverseAndWrite(root, output_dir, data_size, data_set):
+def traverseAndWrite(root, output_dir, data_size, data_set, use_audio_features, use_lyric_features):
     if not isfile(root):
         parent = basename(root)
         for f in listdir(root):
             if len(data_set.get(parent,[])) == data_size:
                 return
-            traverseAndWrite(root +"/"+ f,output_dir, data_size, data_set)
+            traverseAndWrite(root +"/"+ f,output_dir, data_size, data_set, use_audio_features, use_lyric_features)
     else: 
         fileName, fileExtension = splitext(root)
         jsonFile = ''.join([fileName, ".json"])
         lyricFile = ''.join([fileName, ".txt"])
         #if not isfile(jsonFile) or not isfile(lyricFile):
-            
+        audioFeatures = []
+        lyricFeatures = []    
         try:
             json_data=open(jsonFile)
             data = json.load(json_data)
@@ -40,23 +41,22 @@ def traverseAndWrite(root, output_dir, data_size, data_set):
             except OSError:
                 print 
             return
-        
         genre = str(data['genre'])
-        timbre = data['segments_timbre']
-        array = np.array(timbre)
-        mean = np.mean(array, axis=0).tolist()
-        std = np.std(array, axis=0).tolist()
-        audioFeatures = mean + std
-        
-        pitches = data['segments_pitches']
-        array = np.array(pitches)
-        mean = np.mean(array, axis=0).tolist()
-        std = np.std(array, axis=0).tolist()
-        audioFeatures = audioFeatures + mean + std
-        
-        lyricFeatures = data.get('lang_vector',[])
-        # TO DO LYRIC FEATURE CLASSIFICATION uncomment
-        # audioFeatures = []
+        if use_audio_features:    
+            timbre = data['segments_timbre']
+            array = np.array(timbre)
+            mean = np.mean(array, axis=0).tolist()
+            std = np.std(array, axis=0).tolist()
+            audioFeatures = mean + std
+            
+            pitches = data['segments_pitches']
+            array = np.array(pitches)
+            mean = np.mean(array, axis=0).tolist()
+            std = np.std(array, axis=0).tolist()
+            audioFeatures = audioFeatures + mean + std
+        if use_lyric_features:    
+            lyricFeatures = data.get('lang_vector',[])
+            
         featureVector = audioFeatures + lyricFeatures
         if not data_set.get(genre,[]):
             data_set[genre]=[]
@@ -121,17 +121,19 @@ def evaluate_classifier(clf, Y, X, genre_map):
     return results
 
 def main (argv):
-    if not len(argv) == 5:
+    if not len(argv) == 7:
         print "Insufficient parameters"
-        print "<dataPath> <output_dir> <data_size> <cross_validation>"
+        print "<dataPath> <output_dir> <data_size> <cross_validation> <use_audio_features> <use_lyric_features>"
         sys.exit()
-    dataPath, output_dir, data_size, cross_validation = argv[1:] 
+    dataPath, output_dir, data_size, cross_validation, use_audio_features, use_lyric_features = argv[1:] 
+    use_audio_features = use_audio_features in ['true', 'True']
+    use_lyric_features = use_lyric_features in ['true', 'True']
     data_size = int(data_size)
     cross_validation = int(cross_validation)
     if not isdir(output_dir):
         makedirs(output_dir)
     data_set = {}
-    traverseAndWrite(dataPath, output_dir+"errorFiles", data_size, data_set)
+    traverseAndWrite(dataPath, output_dir+"errorFiles", data_size, data_set, use_audio_features, use_lyric_features)
     
     # mapping functions
     genre_map={}
