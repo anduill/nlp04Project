@@ -2,10 +2,12 @@ package nlp.lm;
 
 
 import com.google.common.collect.Lists;
+import com.jidesoft.utils.BigDecimalMathUtils;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Random;
 
@@ -18,12 +20,16 @@ public class TestOriginalBigramModel {
     public static String lyrics_dir = "/Users/djchuy/development/lyrics";
     public String lyricsBase = "/Users/djchuy/development/repositories/nlp04Project/data";
 
-    public String electronic = lyricsBase+"/"+"electronic2";
+    public String electronic = lyricsBase+"/"+"electronic";
     public String pop = lyricsBase+"/"+"pop";
     public String country = lyricsBase+"/"+"country";
     public String punk = lyricsBase+"/"+"punk";
     public String rock = lyricsBase+"/"+"rock";
-    public String out = lyricsBase+"/"+"test_out";
+    public String out50 = lyricsBase+"/"+"lang_out_50";
+    public String out100 = lyricsBase+"/"+"lang_out_100";
+    public String out150 = lyricsBase+"/"+"lang_out_150";
+    public String out200 = lyricsBase+"/"+"lang_out_200";
+    public String out250 = lyricsBase+"/"+"lang_out_250";
 
 
     @Test
@@ -85,7 +91,7 @@ public class TestOriginalBigramModel {
     }
     @Test
     public void testStringOps() throws IOException {
-        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out,"-s","8","-sz","150"};
+        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out250,"-s","8","-sz","250"};
         //String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out,"-s","8","-sz","200"};
         GenreModels.main(args);
     }
@@ -99,5 +105,11 @@ public class TestOriginalBigramModel {
             value = random.nextDouble();
         }
     }
-
+    @Test
+    public void testBigDecimal(){
+        BigDecimal d1 = new BigDecimal(2.4);
+        BigDecimal d2 = new BigDecimal(1010.35);
+        System.out.println(BigDecimalMathUtils.sqrt(d1));
+        System.out.println(d2);
+    }
 }

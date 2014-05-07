@@ -2,6 +2,7 @@ package nlp.lm;
 
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.sampullara.cli.Args;
 import com.sampullara.cli.Argument;
 import com.sun.tools.javac.util.Pair;
@@ -9,8 +10,10 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 public class GenreModels {
@@ -83,6 +86,7 @@ public class GenreModels {
                                        File ouputDir) throws IOException {
         Integer numRockSongs = 0;
         Integer numCorrectRockSongs = 0;
+        Map<String,Double> klMap = Maps.newHashMap();
         for(int i = 0; i < allText.size(); i++){
             File textFile = allText.get(i);
             File jsonFile = allJson.get(i);
@@ -93,12 +97,18 @@ public class GenreModels {
             lang_vector[1] = pop.bidirectionalComplex(songLyricSentences);
             lang_vector[2] = punk.bidirectionalComplex(songLyricSentences);
             lang_vector[3] = rock.bidirectionalComplex(songLyricSentences);
+            addKLEntry(klMap, "electronic-pop", electronic, pop, songLyricSentences);
+            addKLEntry(klMap, "electronic-punk", electronic, punk, songLyricSentences);
+            addKLEntry(klMap, "electronic-rock", electronic, rock, songLyricSentences);
+            addKLEntry(klMap, "pop-punk", pop, punk, songLyricSentences);
+            addKLEntry(klMap, "pop-rock", pop, rock, songLyricSentences);
+            addKLEntry(klMap, "rock-punk", rock, punk, songLyricSentences);
 
             JSONObject json = (JSONObject)JSONValue.parse(new FileReader(jsonFile));
             json.put("lang_vector",lang_vector);
             if(jsonFile.getAbsolutePath().contains("rock")){
                 numRockSongs++;
-                if(lang_vector[3] < lang_vector[0]){
+                if(lang_vector[3] < lang_vector[2]){
                     numCorrectRockSongs++;
                 }
             }
@@ -106,8 +116,23 @@ public class GenreModels {
             jsonWriter.println(json.toJSONString());
             jsonWriter.close();
         }
-        System.out.println("Number of Rock Songs: "+ numRockSongs);
-        System.out.println("Number of Correctly Labeled Rock Songs vs Electronic: "+numCorrectRockSongs);
+        for(Map.Entry<String,Double> klEntry : klMap.entrySet()){
+            System.out.println(klEntry.getKey() + " = " + klEntry.getValue());
+        }
+    }
+
+    private static void addKLEntry(Map<String, Double> klMap,
+                                          String label,
+                                          LyricBigram p_dist,
+                                          LyricBigram q_dist,
+                                          List<List<String>> songLyricSentences) {
+        Double klSentencesTermsSum = p_dist.sentencesSumOfKLTerms(songLyricSentences,q_dist);
+        if(klMap.containsKey(label)){
+            klMap.put(label,klMap.get(label) + klSentencesTermsSum);
+        }
+        else{
+            klMap.put(label,klSentencesTermsSum);
+        }
     }
 
     private static void refreshLists(List<File>...lists) {

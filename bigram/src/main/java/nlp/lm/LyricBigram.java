@@ -2,7 +2,9 @@ package nlp.lm;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.jidesoft.utils.BigDecimalMathUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -161,34 +163,6 @@ public class LyricBigram {
         return bigram.substring(newlinePos + 1, bigram.length());
     }
 
-    public double sequenceLogProb(List<String> sequence,
-                                  Map<String, DoubleValue> unigramMap,
-                                  Map<String, DoubleValue> bigramMap,
-                                  String beginTag,
-                                  String endTag){
-        String prevToken = beginTag;
-        double sentenceLogProb = 0;
-
-        for (String token : sequence) {
-            DoubleValue unigramVal = unigramMap.get(token);
-            if (unigramVal == null) {
-                token = unknownToken;
-                unigramVal = unigramMap.get(token);
-            }
-            String bigram = bigram(prevToken, token);
-            DoubleValue bigramVal = bigramMap.get(bigram);
-            double logProb = Math.log(interpolatedProb(unigramVal, bigramVal));
-            sentenceLogProb += logProb;
-            prevToken = token;
-        }
-        DoubleValue unigramVal = unigramMap.get(endTag);
-        String bigram = bigram(prevToken, endTag);
-        DoubleValue bigramVal = bigramMap.get(bigram);
-        double logProb = Math.log(interpolatedProb(unigramVal, bigramVal));
-        sentenceLogProb += logProb;
-        return sentenceLogProb;
-    }
-
 
     public Double bidirectionalComplex(List<List<String>> sentences){
         double totalLogProb = 0;
@@ -201,6 +175,61 @@ public class LyricBigram {
         }
         double perplexity = Math.exp(-totalLogProb /totalNumTokens);
         return perplexity;
+    }
+
+    public Double sentencesSumOfKLTerms(List<List<String>> songLyricSentences, LyricBigram q) {
+        Double sentencesKLSumTerms = 0.0;
+        for(List<String> sentence :songLyricSentences){
+            Double relativeEntropyDiff = getSentenceKLSumDiff(sentence, forwardUnigramMap, forwardBigramMap,
+                    backwardBigramMap, beginSentenceTag, endSentenceTag, q);
+            sentencesKLSumTerms += relativeEntropyDiff;
+        }
+
+        return sentencesKLSumTerms;
+    }
+
+    private Double getSentenceKLSumDiff(List<String> sentence,
+                                             Map<String, DoubleValue> forwardUnigramMap,
+                                             Map<String, DoubleValue> forwardBigramMap,
+                                             Map<String, DoubleValue> backwardBigramMap,
+                                             String beginSentenceTag,
+                                             String endSentenceTag,
+                                             LyricBigram q) {
+        double sentenceKLSum = 0.0;
+        String prevToken = beginSentenceTag;
+        String followingToken = sentence.size() > 1 ? sentence.get(1) : endSentenceTag;
+        for(int i = 0; i < sentence.size(); i++){
+            String token = sentence.get(i);
+
+            DoubleValue unigramVal = forwardUnigramMap.get(token);
+            DoubleValue qUnigramVal = q.forwardUnigramMap.get(token);
+            if(qUnigramVal == null){
+                token = unknownToken;
+                qUnigramVal = q.forwardUnigramMap.get(token);
+            }
+            if(unigramVal == null){
+                token = unknownToken;
+                unigramVal = forwardUnigramMap.get(token);
+            }
+            String fowardBigram = bigram(prevToken,token);
+            String qForwardBigram = q.bigram(prevToken,token);
+            String backwardBigram = bigram(followingToken,token);
+            String qBackwardBigram = q.bigram(followingToken,token);
+            DoubleValue forwardBigramVal = forwardBigramMap.get(fowardBigram);
+            DoubleValue qForwardBigramVal = q.forwardBigramMap.get(qForwardBigram);
+            DoubleValue backwardBigramVal = backwardBigramMap.get(backwardBigram);
+            DoubleValue qBackwardBigramVal = q.backwardBigramMap.get(qBackwardBigram);
+
+            double tokenBiInterpolatedProb = biInterpolatedProb(unigramVal,forwardBigramVal,backwardBigramVal);
+            double qTokenBiInterpolatedProb = q.biInterpolatedProb(qUnigramVal,qForwardBigramVal,qBackwardBigramVal);
+            double logProb = Math.log(tokenBiInterpolatedProb);
+            double qLogProb = Math.log(qTokenBiInterpolatedProb);
+            sentenceKLSum += tokenBiInterpolatedProb * logProb - tokenBiInterpolatedProb * qLogProb;
+
+            prevToken = token;
+            followingToken = i < sentence.size()-2 ? sentence.get(i+2) : endSentenceTag;
+        }
+        return sentenceKLSum;
     }
 
     private double bidirectionLogProb2(List<String> sentence,
@@ -242,7 +271,8 @@ public class LyricBigram {
     public double biInterpolatedProb(DoubleValue unigramVal, DoubleValue forwardBigramVal, DoubleValue backwardBigramVal) {
         double forwardBigramProb = forwardBigramVal != null ? forwardBigramVal.getValue() : 0;
         double backwardBigramProb = backwardBigramVal != null ? backwardBigramVal.getValue() : 0;
-        return unigramLambda1 * unigramVal.getValue() + bigramLambda * forwardBigramProb + bigramLambda * backwardBigramProb;
+        double result = unigramLambda1 * unigramVal.getValue() + bigramLambda * forwardBigramProb + bigramLambda * backwardBigramProb;
+        return result;
     }
 
     public static int wordCount (List<List<String>> sentences) {
