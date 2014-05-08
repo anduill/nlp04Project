@@ -27,8 +27,8 @@ def traverseAndWrite(root, output_dir, data_size, data_set, use_audio_features, 
         fileName, fileExtension = splitext(root)
         jsonFile = ''.join([fileName, ".json"])
         lyricFile = ''.join([fileName, ".txt"])
-        if not isfile(jsonFile) or not isfile(lyricFile):
-            return
+        # if not isfile(jsonFile) or not isfile(lyricFile):
+        #     return
         audioFeatures = []
         lyricFeatures = []    
         try:

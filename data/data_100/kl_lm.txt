@@ -1,0 +1,18 @@
+rock-punk = 5361.625394807943
+rock-electronic = 5718.683361531503
+pop-punk = 5978.850628661312
+punk-pop = 7106.545110194647
+punk-rock = 6866.822489379029
+rock-pop = 5166.863043393735
+electronic-rock = 4670.040187511023
+pop-electronic = 5509.010855628358
+pop-rock = 4398.9173275540315
+electronic-punk = 5845.015965152196
+electronic-pop = 5178.914922896394
+punk-electronic = 7183.1484153432775
+
+
+Number of Rock Classed: 244 ... Number of Rock Correct: 62
+Number of Punk Classed: 143 ... Number of Punk Correct: 37
+Number of Pop Classed: 204 ... Number of Pop Correct: 55
+Number of Electronic Classed: 209 ... Number of Electronic Correct: 61
