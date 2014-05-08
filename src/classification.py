@@ -23,7 +23,7 @@ def traverseAndWrite(root, output_dir, data_size, data_set, use_audio_features, 
         fileName, fileExtension = splitext(root)
         jsonFile = ''.join([fileName, ".json"])
         lyricFile = ''.join([fileName, ".txt"])
-        #if not isfile(jsonFile) or not isfile(lyricFile):
+        #if not isfile(jsonFile) or not isfile(lyricFile):continue
         audioFeatures = []
         lyricFeatures = []    
         try:
@@ -90,12 +90,12 @@ def normalize(training, testing):
     return ntraining, ntesting
     
 def prettyPrint(array, num_map, genre_map):
-    print ''.join(['{:<11}'.format('')]+['{:<11}'.format(genre) for genre in genre_map.keys()])
+    print ''.join(['{:<11}'.format('')]+['{:<11}'.format(genre) for genre in sorted(genre_map.keys())])
     print '\n'.join(['{:<11}'.format(num_map[index]) + ''.join(['{:<11}'.format(round(item,2)) for item in row]) 
       for index,row in enumerate(array)])
 
 def prettyPrintCSV(array, num_map, genre_map):
-    return ','.join(['{:<11}'.format('')]+['{:<11}'.format(genre) for genre in genre_map.keys()]) +'\n' + '\n'.join(['{:<11}'.format(num_map[index]) +","+ ','.join(['{:<11}'.format(round(item,2)) for item in row]) 
+    return ','.join(['{:<11}'.format('')]+['{:<11}'.format(genre) for genre in sorted(genre_map.keys())]) +'\n' + '\n'.join(['{:<11}'.format(num_map[index]) +","+ ','.join(['{:<11}'.format(round(item,2)) for item in row]) 
       for index,row in enumerate(array)])
     
 def aggregateResults(scores, genre_map):
