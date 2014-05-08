@@ -89,8 +89,14 @@ public class GenreModels {
                                        List<File> allText,
                                        List<File> allJson,
                                        File ouputDir) throws IOException {
-        Integer numRockSongs = 0;
-        Integer numCorrectRockSongs = 0;
+        Integer numRockClassified = 0;
+        Integer numRockCorrect = 0;
+        Integer numPopClassified = 0;
+        Integer numPopCorrect = 0;
+        Integer numPunkClassified = 0;
+        Integer numPunkCorrect = 0;
+        Integer numElecClassified = 0;
+        Integer numElecCorrect = 0;
         Map<String, Double> klMap = Maps.newHashMap();
         for (int i = 0; i < allText.size(); i++) {
             File textFile = allText.get(i);
@@ -117,10 +123,28 @@ public class GenreModels {
 
             JSONObject json = (JSONObject) JSONValue.parse(new FileReader(jsonFile));
             json.put("lang_vector", lang_vector);
-            if (jsonFile.getAbsolutePath().contains("rock")) {
-                numRockSongs++;
-                if (lang_vector[3] < lang_vector[2]) {
-                    numCorrectRockSongs++;
+            if(lang_vector[3] <= lang_vector[2] && lang_vector[3] <= lang_vector[1] && lang_vector[3] <= lang_vector[0]){
+                numRockClassified++;
+                if(jsonFile.getAbsolutePath().contains("rock")){
+                    numRockCorrect++;
+                }
+            }
+            if(lang_vector[2] <= lang_vector[3] && lang_vector[2] <= lang_vector[1] && lang_vector[2] <= lang_vector[0]){
+                numPunkClassified++;
+                if(jsonFile.getAbsolutePath().contains("punk")){
+                    numPunkCorrect++;
+                }
+            }
+            if(lang_vector[1] <= lang_vector[2] && lang_vector[1] <= lang_vector[0] && lang_vector[1] <= lang_vector[3]){
+                numPopClassified++;
+                if(jsonFile.getAbsolutePath().contains("pop")){
+                    numPopCorrect++;
+                }
+            }
+            if(lang_vector[0] <= lang_vector[1] && lang_vector[0] <= lang_vector[2] && lang_vector[0] <= lang_vector[3]){
+                numElecClassified++;
+                if(jsonFile.getAbsolutePath().contains("electronic")){
+                    numElecCorrect++;
                 }
             }
             PrintWriter jsonWriter = new PrintWriter(ouputDir.getAbsolutePath() + "/" + jsonFile.getName());
@@ -130,6 +154,11 @@ public class GenreModels {
         for (Map.Entry<String, Double> klEntry : klMap.entrySet()) {
             System.out.println(klEntry.getKey() + " = " + klEntry.getValue());
         }
+        System.out.println("\n");
+        System.out.println("Number of Rock Classed: "+numRockClassified+" ... Number of Rock Correct: "+ numRockCorrect);
+        System.out.println("Number of Punk Classed: "+numPunkClassified+" ... Number of Punk Correct: "+ numPunkCorrect);
+        System.out.println("Number of Pop Classed: "+numPopClassified+" ... Number of Pop Correct: "+ numPopCorrect);
+        System.out.println("Number of Electronic Classed: "+numElecClassified+" ... Number of Electronic Correct: "+ numElecCorrect);
     }
 
     private static void addKLEntry(Map<String, Double> klMap,
