@@ -122,6 +122,21 @@ public class GenreModels {
             addKLEntry(klMap, "punk-electronic", punk, electronic, songLyricSentences);
 
             JSONObject json = (JSONObject) JSONValue.parse(new FileReader(jsonFile));
+
+            /** Normalize lang-vector **/
+            Double electricTerm = klMap.get("pop-electronic")+klMap.get("punk-electronic")+klMap.get("rock-electronic")+
+                    klMap.get("electronic-pop")+klMap.get("electronic-punk")+klMap.get("electronic-rock");
+            lang_vector[0] = lang_vector[0]/(electricTerm);
+            Double popTerm = klMap.get("punk-pop")+klMap.get("rock-pop")+klMap.get("electronic-pop")+
+                    klMap.get("pop-electronic")+klMap.get("pop-punk")+klMap.get("pop-rock");
+            lang_vector[1] = lang_vector[1]/(popTerm);
+            Double punkTerm = klMap.get("pop-punk")+klMap.get("electronic-punk")+klMap.get("rock-punk")+
+                    klMap.get("punk-electronic")+klMap.get("punk-pop")+klMap.get("punk-rock");
+            lang_vector[2] = lang_vector[2]/(punkTerm);
+            Double rockTerm = klMap.get("pop-rock")+klMap.get("punk-rock")+klMap.get("electronic-rock")+
+                    klMap.get("rock-electronic")+klMap.get("rock-pop")+klMap.get("rock-punk");
+            lang_vector[3] = lang_vector[3]/(rockTerm);
+
             json.put("lang_vector", lang_vector);
             if(lang_vector[3] <= lang_vector[2] && lang_vector[3] <= lang_vector[1] && lang_vector[3] <= lang_vector[0]){
                 numRockClassified++;
