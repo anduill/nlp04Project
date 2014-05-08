@@ -189,10 +189,10 @@ def main (argv):
         scores = name_classifier_scores[t]
         f = open(output_file,'w')
         confusion_matrix_values,confusion_matrix_percentages = aggregateResults(scores,genre_map)
-        f.write('Values')
+        f.write('Values Prediction\True Class')
         f.write(prettyPrintCSV(confusion_matrix_values, num_map, genre_map))
         f.write('\n')
-        f.write('Percentages')
+        f.write('Percentages Prediction\True Class')
         f.write(prettyPrintCSV(confusion_matrix_percentages, num_map, genre_map))
         f.close()
 
