@@ -8,9 +8,13 @@ from os.path import isfile, splitext, basename, isdir
 from sklearn import svm 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.cluster import KMeans
+from numpy.linalg import norm
+from numpy import dot
 import json
 import numpy as np
 import sys
+import math
 
 def traverseAndWrite(root, output_dir, data_size, data_set, use_audio_features, use_lyric_features):
     if not isfile(root):
@@ -23,7 +27,8 @@ def traverseAndWrite(root, output_dir, data_size, data_set, use_audio_features, 
         fileName, fileExtension = splitext(root)
         jsonFile = ''.join([fileName, ".json"])
         lyricFile = ''.join([fileName, ".txt"])
-        #if not isfile(jsonFile) or not isfile(lyricFile):continue
+        if not isfile(jsonFile) or not isfile(lyricFile):
+            return
         audioFeatures = []
         lyricFeatures = []    
         try:
@@ -97,7 +102,12 @@ def prettyPrint(array, num_map, genre_map):
 def prettyPrintCSV(array, num_map, genre_map):
     return ','.join(['{:<11}'.format('')]+['{:<11}'.format(genre) for genre in sorted(genre_map.keys())]) +'\n' + '\n'.join(['{:<11}'.format(num_map[index]) +","+ ','.join(['{:<11}'.format(round(item,2)) for item in row]) 
       for index,row in enumerate(array)])
-    
+def angle_between(a,b):
+  arccosInput = dot(a,b)/norm(a)/norm(b)
+  arccosInput = 1.0 if arccosInput > 1.0 else arccosInput
+  arccosInput = -1.0 if arccosInput < -1.0 else arccosInput
+  return math.acos(arccosInput)
+
 def aggregateResults(scores, genre_map):
     aggregated_results = {genre_map[key]:{genre_map[key2]:0.0 for key2 in sorted(genre_map.keys())} for key in sorted(genre_map.keys())}
     for result in scores:
@@ -159,7 +169,24 @@ def main (argv):
     name_classifier.append(('1_KNN',KNeighborsClassifier(n_neighbors=1)))
     name_classifier.append(('tree',DecisionTreeClassifier(random_state=0)))
     ##################################################
-    
+    ######
+    #CLUSTER TRANSFORM HERE
+    kmeans = KMeans(5)
+    kmeans_data = [ data_point for key, value in data_set.iteritems() for data_point in value ]
+    kmeans.fit(kmeans_data)
+    clusters = kmeans.cluster_centers_
+    tmp ={}
+    for key in data_set.keys():
+        tmp[key] = []
+        for data_point in data_set[key]:
+            projection = []
+            for cluster in clusters:
+                a = np.array(data_point)
+                projection.append(norm(a-cluster))
+                projection.append(angle_between(a,cluster))
+            tmp[key].append(projection) 
+    data_set = tmp
+    ######
     #cross validation
     name_classifier_scores = {t:[] for t in name_classifier}
     for i in range(cross_validation):
