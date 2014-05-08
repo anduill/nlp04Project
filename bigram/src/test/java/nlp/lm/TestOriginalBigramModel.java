@@ -25,11 +25,11 @@ public class TestOriginalBigramModel {
     public String country = lyricsBase+"/"+"country";
     public String punk = lyricsBase+"/"+"punk";
     public String rock = lyricsBase+"/"+"rock";
-    public String out50 = lyricsBase+"/"+"lang_out_50";
-    public String out100 = lyricsBase+"/"+"lang_out_100";
-    public String out150 = lyricsBase+"/"+"lang_out_150";
-    public String out200 = lyricsBase+"/"+"lang_out_200";
-    public String out250 = lyricsBase+"/"+"lang_out_250";
+    public String out50 = lyricsBase+"/data_50/"+"lang_out_50";
+    public String out100 = lyricsBase+"/data_100/"+"lang_out_100";
+    public String out150 = lyricsBase+"/data_150/"+"lang_out_150";
+    public String out200 = lyricsBase+"/data_200/"+"lang_out_200";
+    public String out250 = lyricsBase+"/data_250/"+"lang_out_250";
 
 
     @Test
@@ -91,7 +91,7 @@ public class TestOriginalBigramModel {
     }
     @Test
     public void testStringOps() throws IOException {
-        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out250,"-s","8","-sz","250"};
+        String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out250,"-s","8","-sz","250","-t","200"};
         //String[] args = {"-e",electronic,"-r",rock,"-p",pop,"-pu",punk,"-o",out,"-s","8","-sz","200"};
         GenreModels.main(args);
     }
@@ -99,11 +99,12 @@ public class TestOriginalBigramModel {
     public void testRandomNumbers(){
         Random random = new Random(8l);
         Double value = random.nextDouble();
-        for(int i = 0; i < 10; i++){
-//            random.setSeed(i);
-            System.out.println(value);
-            value = random.nextDouble();
-        }
+        System.out.println(random.nextInt(2));
+        System.out.println(random.nextInt(2));
+        System.out.println(random.nextInt(2));
+        System.out.println(random.nextInt(2));
+        System.out.println(random.nextInt(2));
+
     }
     @Test
     public void testBigDecimal(){

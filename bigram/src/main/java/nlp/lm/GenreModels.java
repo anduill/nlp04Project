@@ -27,54 +27,59 @@ public class GenreModels {
     public static void main(String[] args) throws IOException {
         LyricOptionParser parser = new LyricOptionParser();
         Args.usage(parser);
-        Args.parse(parser,args);
+        Args.parse(parser, args);
 
         File _electronic = new File(parser.electronic);
         File _pop = new File(parser.pop);
         File _country = new File(parser.punk);
         File _rock = new File(parser.rock);
 
-        Pair<List<File>,List<File>> electPairFiles = extractTextJson(_electronic);
-        Pair<List<File>,List<File>> popPairFiles = extractTextJson(_pop);
-        Pair<List<File>,List<File>> punkPairFiles = extractTextJson(_country);
-        Pair<List<File>,List<File>> rockPairFiles = extractTextJson(_rock);
+        Pair<List<File>, List<File>> electPairFiles = extractTextJson(_electronic);
+        Pair<List<File>, List<File>> popPairFiles = extractTextJson(_pop);
+        Pair<List<File>, List<File>> punkPairFiles = extractTextJson(_country);
+        Pair<List<File>, List<File>> rockPairFiles = extractTextJson(_rock);
 
         File _output = new File(parser.output);
         _output.mkdir();
         Long seed = parser.seed;
         Integer modelSampleSize = parser.size;
+        Integer testingSize = parser.testingSize;
 
         List<File> trainingFiles = Lists.newArrayList();
 
         List<File> elecTestingFiles = Lists.newArrayList();
         List<File> elecJsonTestingFiles = Lists.newArrayList();
-        populateTrainingTesting(electPairFiles,trainingFiles,elecTestingFiles,elecJsonTestingFiles,seed,modelSampleSize);
+        populateTrainingTesting(electPairFiles, trainingFiles, elecTestingFiles, elecJsonTestingFiles, seed, modelSampleSize, testingSize);
         electronic = trainBigram(trainingFiles);
         refreshLists(trainingFiles);
 
         List<File> popTestingFiles = Lists.newArrayList();
         List<File> popJsonTestingFiles = Lists.newArrayList();
-        populateTrainingTesting(popPairFiles,trainingFiles,popTestingFiles,popJsonTestingFiles,seed,modelSampleSize);
+        populateTrainingTesting(popPairFiles, trainingFiles, popTestingFiles, popJsonTestingFiles, seed, modelSampleSize, testingSize);
         pop = trainBigram(trainingFiles);
         refreshLists(trainingFiles);
 
         List<File> punkTestingFiles = Lists.newArrayList();
         List<File> punkJsonTestingFiles = Lists.newArrayList();
-        populateTrainingTesting(punkPairFiles,trainingFiles,punkTestingFiles,punkJsonTestingFiles,seed,modelSampleSize);
+        populateTrainingTesting(punkPairFiles, trainingFiles, punkTestingFiles, punkJsonTestingFiles, seed, modelSampleSize, testingSize);
         punk = trainBigram(trainingFiles);
         refreshLists(trainingFiles);
 
         List<File> rockTestingFiles = Lists.newArrayList();
         List<File> rockJsonTestingFiles = Lists.newArrayList();
-        populateTrainingTesting(rockPairFiles,trainingFiles,rockTestingFiles,rockJsonTestingFiles,seed,modelSampleSize);
+        populateTrainingTesting(rockPairFiles, trainingFiles, rockTestingFiles, rockJsonTestingFiles, seed, modelSampleSize, testingSize);
         rock = trainBigram(trainingFiles);
         refreshLists(trainingFiles);
 
         List<File> allText = elecTestingFiles;
-        allText.addAll(popTestingFiles); allText.addAll(punkTestingFiles); allText.addAll(rockTestingFiles);
+        allText.addAll(popTestingFiles);
+        allText.addAll(punkTestingFiles);
+        allText.addAll(rockTestingFiles);
         List<File> allJson = elecJsonTestingFiles;
-        allJson.addAll(popJsonTestingFiles); allJson.addAll(punkJsonTestingFiles); allJson.addAll(rockJsonTestingFiles);
-        appendFeatures(electronic, pop, punk, rock, allText, allJson,_output);
+        allJson.addAll(popJsonTestingFiles);
+        allJson.addAll(punkJsonTestingFiles);
+        allJson.addAll(rockJsonTestingFiles);
+        appendFeatures(electronic, pop, punk, rock, allText, allJson, _output);
     }
 
     private static void appendFeatures(LyricBigram electronic,
@@ -86,8 +91,8 @@ public class GenreModels {
                                        File ouputDir) throws IOException {
         Integer numRockSongs = 0;
         Integer numCorrectRockSongs = 0;
-        Map<String,Double> klMap = Maps.newHashMap();
-        for(int i = 0; i < allText.size(); i++){
+        Map<String, Double> klMap = Maps.newHashMap();
+        for (int i = 0; i < allText.size(); i++) {
             File textFile = allText.get(i);
             File jsonFile = allJson.get(i);
 
@@ -102,41 +107,46 @@ public class GenreModels {
             addKLEntry(klMap, "electronic-rock", electronic, rock, songLyricSentences);
             addKLEntry(klMap, "pop-punk", pop, punk, songLyricSentences);
             addKLEntry(klMap, "pop-rock", pop, rock, songLyricSentences);
+            addKLEntry(klMap, "pop-electronic", pop, electronic, songLyricSentences);
             addKLEntry(klMap, "rock-punk", rock, punk, songLyricSentences);
+            addKLEntry(klMap, "rock-pop", rock, pop, songLyricSentences);
+            addKLEntry(klMap, "rock-electronic", rock, electronic, songLyricSentences);
+            addKLEntry(klMap, "punk-rock", punk, rock, songLyricSentences);
+            addKLEntry(klMap, "punk-pop", punk, pop, songLyricSentences);
+            addKLEntry(klMap, "punk-electronic", punk, electronic, songLyricSentences);
 
-            JSONObject json = (JSONObject)JSONValue.parse(new FileReader(jsonFile));
-            json.put("lang_vector",lang_vector);
-            if(jsonFile.getAbsolutePath().contains("rock")){
+            JSONObject json = (JSONObject) JSONValue.parse(new FileReader(jsonFile));
+            json.put("lang_vector", lang_vector);
+            if (jsonFile.getAbsolutePath().contains("rock")) {
                 numRockSongs++;
-                if(lang_vector[3] < lang_vector[2]){
+                if (lang_vector[3] < lang_vector[2]) {
                     numCorrectRockSongs++;
                 }
             }
-            PrintWriter jsonWriter = new PrintWriter(ouputDir.getAbsolutePath()+"/"+jsonFile.getName());
+            PrintWriter jsonWriter = new PrintWriter(ouputDir.getAbsolutePath() + "/" + jsonFile.getName());
             jsonWriter.println(json.toJSONString());
             jsonWriter.close();
         }
-        for(Map.Entry<String,Double> klEntry : klMap.entrySet()){
+        for (Map.Entry<String, Double> klEntry : klMap.entrySet()) {
             System.out.println(klEntry.getKey() + " = " + klEntry.getValue());
         }
     }
 
     private static void addKLEntry(Map<String, Double> klMap,
-                                          String label,
-                                          LyricBigram p_dist,
-                                          LyricBigram q_dist,
-                                          List<List<String>> songLyricSentences) {
-        Double klSentencesTermsSum = p_dist.sentencesSumOfKLTerms(songLyricSentences,q_dist);
-        if(klMap.containsKey(label)){
-            klMap.put(label,klMap.get(label) + klSentencesTermsSum);
-        }
-        else{
-            klMap.put(label,klSentencesTermsSum);
+                                   String label,
+                                   LyricBigram p_dist,
+                                   LyricBigram q_dist,
+                                   List<List<String>> songLyricSentences) {
+        Double klSentencesTermsSum = p_dist.sentencesSumOfKLTerms(songLyricSentences, q_dist);
+        if (klMap.containsKey(label)) {
+            klMap.put(label, klMap.get(label) + klSentencesTermsSum);
+        } else {
+            klMap.put(label, klSentencesTermsSum);
         }
     }
 
-    private static void refreshLists(List<File>...lists) {
-        for(List<File> list : lists){
+    private static void refreshLists(List<File>... lists) {
+        for (List<File> list : lists) {
             list.clear();
         }
     }
@@ -153,34 +163,46 @@ public class GenreModels {
                                                 List<File> testingFiles,
                                                 List<File> jsonTestingFiles,
                                                 Long seed,
-                                                Integer sampleSize) {
+                                                Integer trainingSize,
+                                                Integer testingSize) {
         List<File> textFiles = textAndJson.fst;
         List<File> jsonFiles = textAndJson.snd;
         List<Integer> trainingIndices = Lists.newArrayList();
         List<Integer> testingIndices = Lists.newArrayList();
         Integer totalNumberOfFiles = textFiles.size();
-        for(int i = 0; i < totalNumberOfFiles; i++){
-            testingIndices.add(i);
+        for (int i = 0; i < totalNumberOfFiles; i++) {
+            trainingIndices.add(i);
         }
         Boolean done = false;
         Random random = new Random(seed);
-        while(!done){
-            if(trainingIndices.size() >= sampleSize){
+        while (!done) {
+            if (testingIndices.size() >= testingSize) {
                 done = true;
+            } else {
+                int nextIndex = random.nextInt(trainingIndices.size());
+
+                Integer lookedUpIndex = trainingIndices.get(nextIndex);
+                testingIndices.add(lookedUpIndex);
+                trainingIndices.remove(nextIndex);
+
             }
-            else{
-                Integer nextIndex = Math.round(random.nextFloat()*testingIndices.size());
-                if(nextIndex < testingIndices.size()){
-                    Integer lookedUpIndex = testingIndices.get(nextIndex);
-                    trainingIndices.add(lookedUpIndex);
-                    testingIndices.remove(nextIndex);
+        }
+        if (trainingIndices.size() > trainingSize) {
+            done = false;
+            while(!done){
+                if(trainingIndices.size() <= trainingSize){
+                    done = true;
+                }
+                else{
+                    int nextIndex = random.nextInt(trainingIndices.size());
+                    trainingIndices.remove(nextIndex);
                 }
             }
         }
-        for(Integer i : trainingIndices){
+        for (Integer i : trainingIndices) {
             trainingFiles.add(textFiles.get(i));
         }
-        for(Integer i : testingIndices){
+        for (Integer i : testingIndices) {
             testingFiles.add(textFiles.get(i));
             jsonTestingFiles.add(jsonFiles.get(i));
         }
@@ -189,26 +211,26 @@ public class GenreModels {
     private static Pair<List<File>, List<File>> extractTextJson(File directory) {
         List<File> jsonFiles = Lists.newArrayList();
         List<File> txtFiles = Lists.newArrayList();
-        for(File file : directory.listFiles()){
+        for (File file : directory.listFiles()) {
             String fileName = file.getAbsolutePath();
-            if(fileName.endsWith(".txt")){
-                String filePrefix = extractPrefix(fileName,".txt");
-                String jsonFileName = filePrefix+".json";
+            if (fileName.endsWith(".txt")) {
+                String filePrefix = extractPrefix(fileName, ".txt");
+                String jsonFileName = filePrefix + ".json";
                 File jsonFile = new File(jsonFileName);
-                if(jsonFile.exists()){
+                if (jsonFile.exists()) {
                     jsonFiles.add(jsonFile);
                     txtFiles.add(file);
                 }
             }
         }
-        return new Pair<List<File>, List<File>>(txtFiles,jsonFiles);
+        return new Pair<List<File>, List<File>>(txtFiles, jsonFiles);
     }
 
     private static String extractPrefix(String fileName, String s) {
-        return fileName.substring(0,fileName.indexOf(s));
+        return fileName.substring(0, fileName.indexOf(s));
     }
 
-    public static class LyricOptionParser{
+    public static class LyricOptionParser {
         @Argument(value = "electronic", alias = "e", required = true, description = "Complete path to electronic dataset directory")
         private String electronic;
         @Argument(value = "pop", alias = "p", required = true, description = "Complete path to pop dataset directory")
@@ -223,5 +245,7 @@ public class GenreModels {
         private Long seed;
         @Argument(value = "size", alias = "sz", required = true, description = "Number of lyric samples for building  genre bigrams")
         private Integer size;
+        @Argument(value = "testingSize", alias = "t", required = true, description = "Number of points for testing")
+        private Integer testingSize;
     }
 }
