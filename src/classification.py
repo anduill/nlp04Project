@@ -15,6 +15,7 @@ import json
 import numpy as np
 import sys
 import math
+import random
 
 def traverseAndWrite(root, output_dir, data_size, data_set, use_audio_features, use_lyric_features):
     if not isfile(root):
@@ -159,6 +160,10 @@ def main (argv):
         tmp[genre_map[key]] = data_set[key]
     data_set = tmp
     
+    #shuffle the list
+    for key in (data_set.keys()):
+        random.shuffle(data_set[key])
+    
     # name_classifier
     # YOU ONLY NEED TO ADD/MODIFY THE CLASSIFIERS HERE
     name_classifier = []
@@ -171,7 +176,8 @@ def main (argv):
     ##################################################
     ######
     #CLUSTER TRANSFORM HERE
-    kmeans = KMeans(5)
+        
+    kmeans = KMeans(4)
     kmeans_data = [ data_point for key, value in data_set.iteritems() for data_point in value ]
     kmeans.fit(kmeans_data)
     clusters = kmeans.cluster_centers_
