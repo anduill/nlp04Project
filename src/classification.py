@@ -182,7 +182,7 @@ def main (argv):
             projection = []
             for cluster in clusters:
                 a = np.array(data_point)
-                projection.append(norm(a-cluster))
+                # projection.append(norm(a-cluster))
                 projection.append(angle_between(a,cluster))
             tmp[key].append(projection) 
     data_set = tmp
