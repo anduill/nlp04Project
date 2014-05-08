@@ -1,0 +1,10 @@
+Values Prediction\True Class           ,electronic ,pop        ,punk       ,rock       
+electronic ,101.0      ,78.0       ,21.0       ,51.0       
+pop        ,25.0       ,38.0       ,16.0       ,22.0       
+punk       ,36.0       ,28.0       ,118.0      ,54.0       
+rock       ,35.0       ,53.0       ,42.0       ,70.0       
+Percentages Prediction\True Class           ,electronic ,pop        ,punk       ,rock       
+electronic ,0.51       ,0.4        ,0.11       ,0.26       
+pop        ,0.13       ,0.19       ,0.08       ,0.11       
+punk       ,0.18       ,0.14       ,0.6        ,0.27       
+rock       ,0.18       ,0.27       ,0.21       ,0.36       
