@@ -1,7 +1,10 @@
 '''
 Created on Apr 23, 2014
+To install scikit
+http://scikit-learn.org/stable/install.html
 
-@author: czar
+Script that reads JSON files, projects the data, normalizes by the training data and does cross validation 
+@author: Ivan Oropeza
 '''
 from os import listdir, makedirs, remove
 from os.path import isfile, splitext, basename, isdir
@@ -28,8 +31,8 @@ def traverseAndWrite(root, output_dir, data_size, data_set, use_audio_features, 
         fileName, fileExtension = splitext(root)
         jsonFile = ''.join([fileName, ".json"])
         lyricFile = ''.join([fileName, ".txt"])
-        # if not isfile(jsonFile) or not isfile(lyricFile):
-        #     return
+#         if not isfile(jsonFile) or not isfile(lyricFile):
+#             return
         audioFeatures = []
         lyricFeatures = []    
         try:
@@ -188,7 +191,7 @@ def main (argv):
             projection = []
             for cluster in clusters:
                 a = np.array(data_point)
-                # projection.append(norm(a-cluster))
+                projection.append(norm(a-cluster))
                 projection.append(angle_between(a,cluster))
             tmp[key].append(projection) 
     data_set = tmp
