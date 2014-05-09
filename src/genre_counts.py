@@ -1,7 +1,7 @@
 '''
 Created on Apr 8, 2014
-
-@author: czar
+Counts the number of songs in the specified directory structure for the specified genres
+@author: Ivan Oropeza
 '''
 import os
 from os import listdir
